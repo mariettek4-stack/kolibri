@@ -188,12 +188,12 @@ function naarScan() {
   naarScherm('scan');
   // Stap 1: Three.js
   zetVoortgang(10, 'Three.js laden...');
-  laadScript('https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js', function() {
+  laadScript('libs/three.min.js', function() {
     zetVoortgang(25, 'Draco decoder laden...');
-    laadScript('https://unpkg.com/three@0.154.0/examples/js/loaders/DRACOLoader.js', function() {
-      laadScript('https://unpkg.com/three@0.154.0/examples/js/loaders/GLTFLoader.js', function() {
+    laadScript('libs/DRACOLoader.js', function() {
+      laadScript('libs/GLTFLoader.js', function() {
         zetVoortgang(45, 'MindAR laden...');
-        laadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js', function() {
+        laadScript('libs/mindar-image-three.prod.js', function() {
           zetVoortgang(60, 'Camera openen...');
           startAR();
         });
@@ -223,7 +223,7 @@ function startAR() {
     zetVoortgang(75, 'Kolibri laden...');
 
     var dracoLoader = new THREE.DRACOLoader();
-    dracoLoader.setDecoderPath('https://unpkg.com/three@0.154.0/examples/js/libs/draco/');
+    dracoLoader.setDecoderPath('./');
 
     var gltfLoader = new THREE.GLTFLoader();
     gltfLoader.setDRACOLoader(dracoLoader);
