@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Kolibri Ademhaling</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#120820; color:white; height:100vh; overflow:hidden; }
+.screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; z-index:100; text-align:center; }
+.screen.hidden { display:none !important; }
+#screen-welkom    { background:linear-gradient(160deg,#120820,#2a1545); }
+#screen-ouder     { background:linear-gradient(160deg,#120820,#2a1545); }
+#screen-veiligheid{ background:linear-gradient(160deg,#0a1520,#1a3040); }
+#screen-tempo     { background:linear-gradient(160deg,#120820,#2a1545); }
+#screen-scan      { background:linear-gradient(160deg,#081510,#152a1e); }
+.kolibri-foto { width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid rgba(180,120,255,0.5);margin-bottom:24px;box-shadow:0 0 40px rgba(140,80,255,0.3); }
+h1 { font-size:26px;font-weight:600;color:#e8d5ff;margin-bottom:10px;line-height:1.3; }
+.subtitel { font-size:15px;color:rgba(255,255,255,0.55);line-height:1.6;margin-bottom:32px; }
+.info-box { border-radius:16px;padding:20px;margin-bottom:24px;max-width:340px;text-align:left; }
+.box-geel { background:rgba(255,200,50,0.1);border:1px solid rgba(255,200,50,0.35); }
+.box-blauw { background:rgba(50,150,255,0.1);border:1px solid rgba(50,150,255,0.35); }
+.info-box h2 { font-size:16px;font-weight:600;margin-bottom:10px; }
+.box-geel h2 { color:#ffd966; }
+.box-blauw h2 { color:#66b3ff; }
+.info-box p,.info-box ul { font-size:14px;color:rgba(255,255,255,0.75);line-height:1.75; }
+.info-box ul { list-style:none; }
+.info-box ul li::before { content:"✓  ";opacity:0.6; }
+.tempo-advies { background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;margin-bottom:28px;max-width:300px;text-align:left; }
+.tempo-advies p { font-size:13px;color:rgba(255,255,255,0.55);line-height:1.9; }
+.tempo-rij { display:flex;gap:14px;margin-bottom:32px; }
+.tempo-knop { width:82px;height:82px;border-radius:50%;border:2px solid rgba(180,120,255,0.4);background:rgba(180,120,255,0.08);color:white;font-size:30px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;-webkit-tap-highlight-color:transparent; }
+.tempo-knop small { font-size:11px;font-weight:400;opacity:0.5;margin-top:2px; }
+.tempo-knop.actief { background:rgba(180,120,255,0.3);border-color:#b478ff;box-shadow:0 0 20px rgba(140,80,255,0.4);transform:scale(1.05); }
+.btn { padding:15px 36px;border-radius:50px;border:none;font-size:16px;font-weight:600;cursor:pointer;width:100%;max-width:320px;transition:all 0.18s;-webkit-tap-highlight-color:transparent; }
+.btn:active { transform:scale(0.97); }
+.btn-primair { background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;box-shadow:0 4px 20px rgba(109,40,217,0.4); }
+.btn-secundair { background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);margin-top:12px; }
+.scan-kader { width:130px;height:130px;border:2px dashed rgba(100,255,150,0.45);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:52px;margin-bottom:20px; }
+@keyframes puls { 0%,100%{box-shadow:0 0 0 0 rgba(100,255,150,0)} 50%{box-shadow:0 0 0 12px rgba(100,255,150,0.1)} }
+.scan-kader.actief { animation:puls 2s ease-in-out infinite; }
+.voortgang-wrap { width:260px;margin:16px 0; }
+.voortgang-balk { height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden; }
+.voortgang-vul { height:100%;background:linear-gradient(90deg,#6d28d9,#b478ff);border-radius:2px;width:0%;transition:width 0.4s ease; }
+#laad-tekst { font-size:13px;color:rgba(100,255,150,0.8);margin-top:10px;min-height:20px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.spinner { display:inline-block;width:12px;height:12px;border:2px solid rgba(100,255,150,0.2);border-top-color:rgba(100,255,150,0.9);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle; }
+#ar-container { position:fixed;inset:0;z-index:10;display:none; }
+#ar-container.actief { display:block; }
+#adem-overlay { position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none; }
+#adem-overlay.actief { display:flex; }
+#fase-gloed { position:absolute;inset:0;opacity:0;transition:background 1.8s ease,opacity 0.6s ease; }
+#pad-wrap { position:absolute;width:270px;height:270px; }
+#pad-svg { width:100%;height:100%;overflow:visible; }
+#vogel { position:absolute;font-size:38px;transform:translate(-50%,-50%);filter:drop-shadow(0 0 14px rgba(200,150,255,0.9));z-index:2; }
+#info { position:absolute;bottom:100px;left:0;right:0;text-align:center; }
+#fase-naam { font-size:22px;font-weight:600;color:white;text-shadow:0 2px 12px rgba(0,0,0,0.8); }
+#tel-getal { font-size:64px;font-weight:200;color:white;text-shadow:0 0 30px rgba(180,120,255,0.7);line-height:1;margin-top:6px; }
+#stop-knop { position:fixed;top:18px;right:18px;z-index:200;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:white;border-radius:50px;padding:10px 22px;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(10px);pointer-events:all; }
+</style>
+</head>
+<body>
+
+<div id="screen-welkom" class="screen">
+  <img src="origami_kolibri_stylize_530.jpeg" class="kolibri-foto" alt="Kolibri">
+  <h1>Adem mee<br>met de kolibri</h1>
+  <p class="subtitel">Een rustige oefening die helpt<br>ontspannen en tot rust komen</p>
+  <button class="btn btn-primair" onclick="naarScherm('ouder')">Beginnen</button>
+</div>
+
+<div id="screen-ouder" class="screen hidden">
+  <div class="info-box box-geel">
+    <h2>👋 Voor ouders en begeleiders</h2>
+    <p>Deze oefening helpt kinderen ontspannen door rustig mee te ademen met de kolibri. Doe de eerste keer samen, zodat je kind weet hoe het werkt.<br><br>De app vraagt geen gegevens en slaat niets op.</p>
+  </div>
+  <button class="btn btn-primair" onclick="naarScherm('veiligheid')">Ik heb dit gelezen</button>
+  <button class="btn btn-secundair" onclick="naarScherm('welkom')">Terug</button>
+</div>
+
+<div id="screen-veiligheid" class="screen hidden">
+  <div class="info-box box-blauw">
+    <h2>Veilig gebruiken</h2>
+    <ul>
+      <li>Zit of sta op een rustige, veilige plek</li>
+      <li>Gebruik dit nooit in het verkeer</li>
+      <li>Je hoeft niet te bewegen tijdens de oefening</li>
+      <li>Stop direct als je je duizelig voelt</li>
+    </ul>
+  </div>
+  <button class="btn btn-primair" onclick="naarScherm('tempo')">Begrepen, verder</button>
+  <button class="btn btn-secundair" onclick="naarScherm('ouder')">Terug</button>
+</div>
+
+<div id="screen-tempo" class="screen hidden">
+  <h1 style="margin-bottom:10px">Kies jouw tempo</h1>
+  <p class="subtitel" style="margin-bottom:20px">Hoeveel tellen per fase?</p>
+  <div class="tempo-advies">
+    <p>4–6 jaar &nbsp;→&nbsp; 2 tellen<br>7–10 jaar &nbsp;→&nbsp; 3 tellen<br>11+ jaar &nbsp;→&nbsp; 4 tellen</p>
+  </div>
+  <div class="tempo-rij">
+    <button class="tempo-knop" onclick="kiesTempo(2,this)">2<small>tellen</small></button>
+    <button class="tempo-knop" onclick="kiesTempo(3,this)">3<small>tellen</small></button>
+    <button class="tempo-knop actief" onclick="kiesTempo(4,this)">4<small>tellen</small></button>
+  </div>
+  <button class="btn btn-primair" onclick="naarScan()">Verder</button>
+  <button class="btn btn-secundair" onclick="naarScherm('veiligheid')">Terug</button>
+</div>
+
+<div id="screen-scan" class="screen hidden">
+  <div class="scan-kader" id="scan-kader">🐦</div>
+  <h1 style="margin-bottom:8px">Richt op de kolibri</h1>
+  <p class="subtitel" style="margin-bottom:0">Houd het kaartje voor je en<br>richt de camera erop</p>
+  <div class="voortgang-wrap">
+    <div class="voortgang-balk"><div class="voortgang-vul" id="voortgang-vul"></div></div>
+    <div id="laad-tekst"><span class="spinner"></span>Laden...</div>
+  </div>
+  <button class="btn btn-secundair" onclick="stopAlles()">Annuleren</button>
+</div>
+
+<div id="ar-container"></div>
+
+<div id="adem-overlay">
+  <div id="fase-gloed"></div>
+  <div id="pad-wrap">
+    <svg id="pad-svg" viewBox="0 0 270 270" fill="none">
+      <rect x="35" y="35" width="200" height="200" rx="14"
+        stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-dasharray="7 5"/>
+      <path id="spoor" stroke="rgba(190,140,255,0.7)" stroke-width="3"
+        stroke-linecap="round" fill="none" d=""/>
+      <circle cx="35"  cy="35"  r="5" fill="rgba(180,120,255,0.4)"/>
+      <circle cx="235" cy="35"  r="5" fill="rgba(180,120,255,0.4)"/>
+      <circle cx="235" cy="235" r="5" fill="rgba(180,120,255,0.4)"/>
+      <circle cx="35"  cy="235" r="5" fill="rgba(180,120,255,0.4)"/>
+    </svg>
+  </div>
+  <div id="vogel">🐦</div>
+  <div id="info">
+    <div id="fase-naam">Inademen</div>
+    <div id="tel-getal">1</div>
+  </div>
+</div>
+
+<button id="stop-knop" onclick="stopAlles()">✕ Stop</button>
+
+<script>
+var tempo = 4;
+var telInterval = null;
+var animFrame = null;
+var fase = 0;
+var tel = 1;
+var faseStart = null;
+var mindarThree = null;
+
+var FASES = [
+  { naam:'Inademen',   gloed:'rgba(80,180,255,0.18)',  van:[35,235], naar:[35,35]   },
+  { naam:'Vasthouden', gloed:'rgba(160,100,255,0.18)', van:[35,35],  naar:[235,35]  },
+  { naam:'Uitademen',  gloed:'rgba(255,130,80,0.18)',  van:[235,35], naar:[235,235] },
+  { naam:'Rust',       gloed:'rgba(80,210,130,0.18)',  van:[235,235],naar:[35,235]  },
+];
+
+function naarScherm(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hidden'); });
+  document.getElementById('screen-' + id).classList.remove('hidden');
+}
+
+function kiesTempo(n, knop) {
+  tempo = n;
+  document.querySelectorAll('.tempo-knop').forEach(function(k){ k.classList.remove('actief'); });
+  knop.classList.add('actief');
+}
+
+function zetVoortgang(pct, tekst) {
+  document.getElementById('voortgang-vul').style.width = pct + '%';
+  document.getElementById('laad-tekst').innerHTML = pct < 100
+    ? '<span class="spinner"></span>' + tekst
+    : tekst;
+}
+
+function laadScript(src, cb) {
+  var s = document.createElement('script');
+  s.src = src;
+  s.onload = cb;
+  s.onerror = function(){ zetVoortgang(0, '⚠️ Netwerk fout bij laden ' + src.split('/').pop()); };
+  document.head.appendChild(s);
+}
+
+function naarScan() {
+  naarScherm('scan');
+  // Stap 1: Three.js
+  zetVoortgang(10, 'Three.js laden...');
+  laadScript('https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js', function() {
+    zetVoortgang(25, 'Draco decoder laden...');
+    laadScript('https://unpkg.com/three@0.154.0/examples/js/loaders/DRACOLoader.js', function() {
+      laadScript('https://unpkg.com/three@0.154.0/examples/js/loaders/GLTFLoader.js', function() {
+        zetVoortgang(45, 'MindAR laden...');
+        laadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js', function() {
+          zetVoortgang(60, 'Camera openen...');
+          startAR();
+        });
+      });
+    });
+  });
+}
+
+function startAR() {
+  try {
+    var container = document.getElementById('ar-container');
+    container.classList.add('actief');
+
+    mindarThree = new window.MINDAR.IMAGE.MindARThree({
+      container: container,
+      imageTargetSrc: 'kolibri.mind',
+      maxTrack: 1,
+      uiLoading: 'no',
+      uiScanning: 'no',
+      uiError: 'no',
+    });
+
+    var renderer = mindarThree.renderer;
+    var scene    = mindarThree.scene;
+    var camera   = mindarThree.camera;
+
+    zetVoortgang(75, 'Kolibri laden...');
+
+    var dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://unpkg.com/three@0.154.0/examples/js/libs/draco/');
+
+    var gltfLoader = new THREE.GLTFLoader();
+    gltfLoader.setDRACOLoader(dracoLoader);
+
+    var anchor = mindarThree.addAnchor(0);
+
+    gltfLoader.load('kolibri-v2.glb', function(gltf) {
+      var model = gltf.scene;
+      model.scale.set(0.3, 0.3, 0.3);
+      model.position.set(0, 0, 0);
+      anchor.group.add(model);
+      zetVoortgang(100, '✓ Richt nu op de kolibri');
+      document.getElementById('scan-kader').classList.add('actief');
+    }, undefined, function(err) {
+      zetVoortgang(0, '⚠️ Model laad fout: ' + err.message);
+    });
+
+    anchor.onTargetFound = function() {
+      if (!document.getElementById('adem-overlay').classList.contains('actief')) {
+        setTimeout(startAdemhaling, 500);
+      }
+    };
+
+    var t = 0;
+    mindarThree.start().then(function() {
+      renderer.setAnimationLoop(function() {
+        t += 0.02;
+        if (anchor.group.children.length > 0) {
+          anchor.group.children[0].rotation.y += 0.008;
+          anchor.group.children[0].position.y = Math.sin(t) * 0.025;
+        }
+        renderer.render(scene, camera);
+      });
+    }).catch(function(e) {
+      zetVoortgang(0, '⚠️ ' + (e.message || 'Camera fout'));
+    });
+
+  } catch(e) {
+    zetVoortgang(0, '⚠️ ' + (e.message || 'Onbekende fout'));
+  }
+}
+
+function startAdemhaling() {
+  document.getElementById('screen-scan').classList.add('hidden');
+  document.getElementById('adem-overlay').classList.add('actief');
+  document.getElementById('stop-knop').style.display = 'block';
+  fase = 0; tel = 1;
+  faseStart = performance.now();
+  updateFaseUI();
+  clearInterval(telInterval);
+  telInterval = setInterval(function() {
+    tel++;
+    document.getElementById('tel-getal').textContent = tel;
+    if (tel > tempo) {
+      tel = 1;
+      fase = (fase + 1) % 4;
+      faseStart = performance.now();
+      updateFaseUI();
+    }
+  }, 1000);
+  animatieLoop();
+}
+
+function updateFaseUI() {
+  var f = FASES[fase];
+  document.getElementById('fase-naam').textContent = f.naam;
+  document.getElementById('tel-getal').textContent = tel;
+  var g = document.getElementById('fase-gloed');
+  g.style.background = f.gloed;
+  g.style.opacity = '1';
+}
+
+function animatieLoop() {
+  cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(animatieLoop);
+  var voortgang = Math.min((performance.now() - faseStart) / (tempo * 1000), 1);
+  var f = FASES[fase];
+  var svgX = f.van[0] + (f.naar[0] - f.van[0]) * voortgang;
+  var svgY = f.van[1] + (f.naar[1] - f.van[1]) * voortgang;
+  var wrap = document.getElementById('pad-wrap');
+  var r = wrap.getBoundingClientRect();
+  var vogel = document.getElementById('vogel');
+  vogel.style.left = (r.left + svgX * r.width / 270) + 'px';
+  vogel.style.top  = (r.top  + svgY * r.height / 270) + 'px';
+  var d = '';
+  for (var i = 0; i < fase; i++) {
+    var pf = FASES[i];
+    d += (i === 0 ? 'M ' + pf.van[0] + ' ' + pf.van[1] + ' ' : '') + 'L ' + pf.naar[0] + ' ' + pf.naar[1] + ' ';
+  }
+  d += (d === '' ? 'M ' + f.van[0] + ' ' + f.van[1] + ' ' : 'L ' + f.van[0] + ' ' + f.van[1] + ' ') + 'L ' + svgX + ' ' + svgY;
+  document.getElementById('spoor').setAttribute('d', d);
+}
+
+function stopAlles() {
+  clearInterval(telInterval);
+  cancelAnimationFrame(animFrame);
+  if (mindarThree) {
+    try { mindarThree.stop(); } catch(e){}
+    mindarThree = null;
+  }
+  document.getElementById('ar-container').classList.remove('actief');
+  document.getElementById('ar-container').innerHTML = '';
+  document.getElementById('adem-overlay').classList.remove('actief');
+  document.getElementById('stop-knop').style.display = 'none';
+  document.getElementById('voortgang-vul').style.width = '0%';
+  document.getElementById('laad-tekst').innerHTML = '<span class="spinner"></span>Laden...';
+  document.getElementById('scan-kader').classList.remove('actief');
+  naarScherm('welkom');
+}
+</script>
+</body>
+</html>
